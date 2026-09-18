@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 import json
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ TAG_TO_ID = {tag: i for i, tag in enumerate(TAGS)}
 PAD, UNK = 0, 1
 
 
+
 def get_data(path: str | Path) -> list[dict[str, Any]]:
     """Read UTF-8 JSONL, ignoring blank lines, preserving sentence order.
 
@@ -26,14 +28,73 @@ def get_data(path: str | Path) -> list[dict[str, Any]]:
     Return only the three required fields; additional fields may be ignored.
     Example record: {"id":"s1","tokens":["Birds","fly"],"tags":["NOUN","VERB"]}.
     """
-    # TODO Task 1
-    raise NotImplementedError("Task 1: get_data")
+    def validate_record(record):
+        # Unique nonempty ID
+        if not record.get('id', None):
+            raise ValueError("No ID")
+        # Nonempty tokens list
+        if not record.get('tokens') or len(record.get('tokens')) < 0:
+            raise ValueError("Tokens are malformed")
+        # Equal length tags
+        if not record.get('tags') or len(record.get('tags')) != len(record.get('tokens')):
+            raise ValueError("Tags are malformed")
+        # Tokens don't have whitespace
+        for token in record.get('tokens'):
+            if not len(token):
+                raise ValueError('Token is empty')
+            if token != token.strip():
+                raise ValueError('Token contains whitespace')
+
+    lines = []
+    with open(path) as f:
+        for raw_line in f:
+            if raw_line and raw_line.strip():
+                try:
+                    line = json.loads(raw_line.strip())
+                except JSONDecodeError:
+                    raise ValueError("JSON decode error")
+            validate_record(line)
+            # Only keep these 3 fields
+            filtered_line = {"id": line.get('id'), "tokens": line.get('tokens'), "tags": line.get('tags')}
+            lines.append(filtered_line)
+        if not len(lines):
+            raise ValueError("File is empty")
+
+        # Check all IDs are unique
+        ids = [line['id'] for line in lines]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate IDs")
+
+        return lines
 
 
 def build_vocab(records: list[dict], min_freq: int = 2) -> dict[str, int]:
     """Build a lowercase training vocabulary: PAD=0, UNK=1, then frequent words in sorted order."""
-    # TODO Task 1
-    raise NotImplementedError("Task 1: build_vocab")
+    # Get words list
+    words = [word.lower() for record in records for word in record['tokens']]
+    counts = {}
+    # Build counts
+    for word in words:
+        if counts.get(word):
+            counts[word] += 1
+        else:
+            counts[word] = 1
+    # Skip < min_freq
+    for word, freq in list(counts.items()):
+        if freq < min_freq:
+            counts.pop(word)
+    # Sort by frequency
+    sorted_words = sorted(counts, key=counts.get, reverse=True)
+    # Build vocab dict starting at 2
+    vocab = {str(word): id + 2 for id, word in enumerate(sorted_words)}
+    # Add extra tokens
+    vocab["<PAD>"], vocab["<UNK>"] = 0, 1
+    return vocab
+
+
+
+if __name__ == '__main__':
+    build_vocab(get_data('/Users/shay/PycharmProjects/CS577-HW1/code/data/train.jsonl'))
 
 
 def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
