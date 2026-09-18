@@ -99,8 +99,10 @@ if __name__ == '__main__':
 
 def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
     """Map lowercase words to IDs, using UNK for unseen words."""
-    # TODO Task 1
-    raise NotImplementedError("Task 1: encode_words")
+    token_ids = []
+    for token in tokens:
+        token_ids.append(vocab.get(token, UNK))
+    return token_ids
 
 
 def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
