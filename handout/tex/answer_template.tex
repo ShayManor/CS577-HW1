@@ -1,0 +1,187 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx,float}
+\usepackage{array,tabularx}
+\usepackage{hyperref}
+
+\usepackage{booktabs}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{7pt}
+
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\setlength{\emergencystretch}{2em}
+\setlength{\intextsep}{8pt}
+\newcommand{\answer}{\par\noindent\textbf{Answer:}\par\vspace{0.5cm}}
+\newcommand{\blankrow}{\rule{0pt}{0.55cm}}
+\newcommand{\curveplaceholder}[1]{\fbox{\parbox[c][2.5cm][c]{0.94\linewidth}{\centering Configuration #1: training and validation loss}}}
+\title{\textbf{Homework 1}}
+\author{\textbf{CS 577}: Natural Language Processing\\[0.3cm]
+Name: \underline{\hspace{5cm}}\\[0.15cm]
+Purdue email: \underline{\hspace{4cm}}}
+\date{}
+\begin{document}
+\maketitle
+% Replace blank answer areas and cells. Preserve labels and question numbers.
+% On Overleaf, upload this file and your figure, then use its uploaded filename.
+% This template compiles without figures or any additional files.
+
+\section{Conceptual Questions}
+\subsection*{Q1: Grammatical Ambiguity}
+\answer
+
+\subsection*{Q2: Morphology and Orthography}
+\answer
+
+\subsection*{Q3: Subword Tokenization}
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}P{4cm}L@{}}\toprule
+\textbf{Word}&\textbf{Actual Qwen tokenizer pieces}\\\midrule
+walk&\blankrow\\\addlinespace[2pt]
+walked&\blankrow\\\addlinespace[2pt]
+walking&\blankrow\\\addlinespace[2pt]
+unhappiness&\blankrow\\\addlinespace[2pt]
+microservices&\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Tokenization under the specified isolated-word convention.}
+\label{tab:tokenization}
+\end{table}
+\answer
+
+\clearpage
+\subsection*{Q4: Dimensions and Parameters}
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}cCCCC@{}}\toprule
+\textbf{Model}&\shortstack{\textbf{MLP input}\\\textbf{dimension}}&\shortstack{\textbf{Embedding}\\\textbf{parameters}}&\shortstack{\textbf{MLP}\\\textbf{parameters}}&\shortstack{\textbf{Total}\\\textbf{parameters}}\\\midrule
+1& & & &\blankrow\\\addlinespace[2pt]
+2& & & &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Parameter counts for the specified hypothetical vocabulary.}
+\label{tab:parameters}
+\end{table}
+\noindent\textbf{Calculations:}
+\vspace{1.3cm}
+\answer
+
+\subsection*{Q5: Supervision and Gradient Flow}
+\noindent\textbf{Selected zero-based positions:} \underline{\hspace{5cm}}
+\answer
+
+\subsection*{Q6: Interpreting Comparisons}
+\answer
+
+\clearpage
+\section{Experimental Analysis}
+\subsection*{1. Results and Reproducibility}
+\noindent\textbf{Model 4 projection:} none / dimension \underline{\hspace{2cm}}.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}cCCCC@{}}\toprule
+\textbf{Model}&\textbf{Overall}&\shortstack{\textbf{Non-punct.}}&\textbf{Unseen words}&\shortstack{\textbf{Ambiguous}\\\textbf{words}}\\\midrule
+1& & & &\blankrow\\\addlinespace[2pt]
+2& & & &\blankrow\\\addlinespace[2pt]
+3& & & &\blankrow\\\addlinespace[2pt]
+4& & & &\blankrow\\\addlinespace[2pt]
+5& & & &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Validation accuracy: mean $\pm$ population standard deviation across seeds 2026 and 577. Accuracy is in percent; standard deviation is in percentage points.}
+\label{tab:results}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}CCCC@{}}\toprule
+\textbf{All words}&\textbf{Non-punct.}&\textbf{Unseen words}&\shortstack{\textbf{Ambiguous}\\\textbf{words}}\\\midrule
+ & & &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Number of validation word occurrences in each evaluation subset (count each occurrence, not each distinct word; fill in once for all models and seeds).}
+\label{tab:support}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}cCCC@{}}\toprule
+\textbf{Model}&\shortstack{\textbf{Trainable}\\\textbf{parameters}}&\shortstack{\textbf{Best epoch}\\Seed 2026}&\shortstack{\textbf{Best epoch}\\Seed 577}\\\midrule
+1& & &\blankrow\\\addlinespace[2pt]
+2& & &\blankrow\\\addlinespace[2pt]
+3& & &\blankrow\\\addlinespace[2pt]
+4& & &\blankrow\\\addlinespace[2pt]
+5& & &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Model size and checkpoint selection.}
+\label{tab:checkpoints}
+\end{table}
+
+\clearpage
+\subsection*{2. Learning Curves}
+\begin{figure}[H]
+\centering
+% Replace the placeholder boxes below with your training and validation loss curves.
+% Replace PATH_TO_FIGURE with the figure filename or path, then uncomment:
+% \includegraphics[width=\linewidth]{PATH_TO_FIGURE}
+\curveplaceholder{1}\\[0.2cm]
+\curveplaceholder{2}\\[0.2cm]
+\curveplaceholder{3}\\[0.2cm]
+\curveplaceholder{4}\\[0.2cm]
+\curveplaceholder{5}
+\caption{Training and validation cross-entropy loss for seed 2026 over all 10 epochs.}
+\label{fig:curves}
+\end{figure}
+
+\clearpage
+\subsection*{3. Representation Comparisons}
+\noindent\textbf{1 versus 2: local context.}
+\answer
+\noindent\textbf{2 versus 3: linguistic features.}
+\answer
+\noindent\textbf{2 versus 4: unseen words.}
+\answer
+\noindent\textbf{4 versus 5: ambiguous words.}
+\answer
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}LCC@{}}\toprule
+\textbf{Qwen pieces per word}&\textbf{Number of words}&\shortstack{\textbf{Model 4 accuracy}\\Mean $\pm$ std.}\\\midrule
+1& &\blankrow\\\addlinespace[2pt]
+2& &\blankrow\\\addlinespace[2pt]
+3 or more& &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{Configuration 4 by subword count on validation data.}
+\label{tab:subwords}
+\end{table}
+\noindent\textbf{Interpretation of subword-count results:}
+\answer
+
+\clearpage
+\subsection*{4. Error Analysis}
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{@{}cCCCC@{}}\toprule
+\textbf{Case}&\shortstack{\textbf{Sentence ID /}\\\textbf{word index}}&\textbf{Target word}&\textbf{Gold tag}&\shortstack{\textbf{Model 2}\\\textbf{prediction}}\\\midrule
+1& & & &\blankrow\\\addlinespace[2pt]
+2& & & &\blankrow\\\addlinespace[2pt]
+3& & & &\blankrow\\\addlinespace[2pt]
+4& & & &\blankrow\\\addlinespace[2pt]
+5& & & &\blankrow\\\bottomrule
+\end{tabularx}
+\caption{The five selected errors from configuration 2, seed 2026.}
+\label{tab:errors}
+\end{table}
+\noindent\textbf{Case 1 -- sentence and explanation:}\answer
+\noindent\textbf{Case 2 -- sentence and explanation:}\answer
+\noindent\textbf{Case 3 -- sentence and explanation:}\answer
+\noindent\textbf{Case 4 -- sentence and explanation:}\answer
+\noindent\textbf{Case 5 -- sentence and explanation:}\answer
+
+\section{Generative AI Disclosure}
+Briefly describe your use of AI tools or other permitted assistance. Write ``None'' if you used neither. Failure to disclose such use may be reported as academic dishonesty.
+\answer
+\end{document}

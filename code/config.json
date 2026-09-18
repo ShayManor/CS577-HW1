@@ -1,0 +1,16 @@
+{
+  "train": "data/train.jsonl",
+  "valid": "data/valid.jsonl",
+  "asset_dir": "assets",
+  "output_dir": "results",
+  "seeds": [2026, 577],
+  "epochs": 10,
+  "batch_size": 256,
+  "learning_rate": 0.001,
+  "hidden_dim": 128,
+  "embedding_dim": 100,
+  "projection_dim": null,
+  "dropout": 0.1,
+  "min_word_frequency": 2,
+  "cpu_threads": 4
+}
