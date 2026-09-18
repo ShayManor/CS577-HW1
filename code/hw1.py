@@ -138,12 +138,17 @@ class POSMLP(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
         super().__init__()
-        # TODO Task 3
-        raise NotImplementedError("Task 3: POSMLP.__init__")
+        self.linear = nn.Linear(input_dim, hidden_dim)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+        self.output = nn.Linear(hidden_dim, num_tags)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO Task 3
-        raise NotImplementedError("Task 3: POSMLP.forward")
+        x = self.linear(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.output(x)
+        return x
 
 
 class WindowTagger(nn.Module):
