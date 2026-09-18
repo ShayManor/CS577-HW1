@@ -17,7 +17,6 @@ TAG_TO_ID = {tag: i for i, tag in enumerate(TAGS)}
 PAD, UNK = 0, 1
 
 
-
 def get_data(path: str | Path) -> list[dict[str, Any]]:
     """Read UTF-8 JSONL, ignoring blank lines, preserving sentence order.
 
@@ -28,6 +27,7 @@ def get_data(path: str | Path) -> list[dict[str, Any]]:
     Return only the three required fields; additional fields may be ignored.
     Example record: {"id":"s1","tokens":["Birds","fly"],"tags":["NOUN","VERB"]}.
     """
+
     def validate_record(record):
         # Unique nonempty ID
         if not record.get('id', None):
@@ -92,11 +92,6 @@ def build_vocab(records: list[dict], min_freq: int = 2) -> dict[str, int]:
     return vocab
 
 
-
-if __name__ == '__main__':
-    build_vocab(get_data('/Users/shay/PycharmProjects/CS577-HW1/code/data/train.jsonl'))
-
-
 def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
     """Map lowercase words to IDs, using UNK for unseen words."""
     token_ids = []
@@ -107,12 +102,20 @@ def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
 
 def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
     """Zero-pad sentence windows: [N] or [N,D] -> [N,2*radius+1] or [N,2*radius+1,D]."""
-    # TODO Task 1
-    raise NotImplementedError("Task 1: make_windows")
+    padded = []
+    for i in range(radius + 1):
+        row = [0] * (radius - i)
+        row.extend(values)
+        row.extend([0] * i)
+        padded.append(row)
+    return torch.Tensor(padded)
 
+if __name__ == '__main__':
+    print(make_windows(torch.Tensor([2, 3, 4]), radius=2))
 
 class LinguisticFeatures:
     """Three suffix one-hot blocks followed by five binary word features."""
+
     def __init__(self):
         self.suffix_vocabs: list[dict[str, int]] = []
 
@@ -145,6 +148,7 @@ class POSMLP(nn.Module):
 
 class WindowTagger(nn.Module):
     """Word-window classifier for models 1, 2, and 3."""
+
     def __init__(self, vocab_size: int, radius: int = 2, feature_dim: int = 0,
                  embedding_dim: int = 100, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
@@ -175,6 +179,7 @@ def mean_pool_subwords(embeddings: torch.Tensor,
 
 class QwenTagger(nn.Module):
     """Classify frozen word vectors, with an optional shared linear projection."""
+
     def __init__(self, source_dim: int, projection_dim: int | None = None,
                  radius: int = 2, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
@@ -226,6 +231,7 @@ def extract_bert_words(tokens: list[str], tokenizer, encoder) -> torch.Tensor:
 
 class BertTagger(nn.Module):
     """Classify cached BERT contextual word representations."""
+
     def __init__(self, source_dim: int = 768, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
         super().__init__()
