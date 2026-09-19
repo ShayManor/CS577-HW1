@@ -110,8 +110,6 @@ def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
         padded.append(row)
     return torch.Tensor(padded)
 
-if __name__ == '__main__':
-    print(make_windows(torch.Tensor([2, 3, 4]), radius=2))
 
 class LinguisticFeatures:
     """Three suffix one-hot blocks followed by five binary word features."""
@@ -121,8 +119,31 @@ class LinguisticFeatures:
 
     def fit(self, records: list[dict]) -> "LinguisticFeatures":
         """Fit suffix vocabularies of lengths 1, 2, and 3 on training data; return self."""
-        # TODO Task 2
-        raise NotImplementedError("Task 2: LinguisticFeatures.fit")
+        for i in range(3):
+            self.suffix_vocabs.append({})
+        for idx, vocab in enumerate(self.suffix_vocabs):
+            suffix_len = idx + 1
+            # Build counts dict
+            counts = {}
+            for record in records:
+                for word in record['tokens']:
+                    word = word.lower()
+                    if len(word) < suffix_len:
+                        continue
+                    suffix = word[-suffix_len:]
+                    if suffix in counts:
+                        counts[suffix] += 1
+                    else:
+                        counts[suffix] = 1
+            filtered_counts = {}
+            for word, count in counts.items():
+                if count >= 2:
+                    filtered_counts[word] = count
+            sorted_words = sorted(filtered_counts.keys())
+            for i, word in enumerate(sorted_words):
+                vocab[word] = i + 1
+            vocab['<UNK>'] = 0
+        return self
 
     @property
     def dim(self) -> int:
