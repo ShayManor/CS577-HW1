@@ -151,8 +151,41 @@ class LinguisticFeatures:
 
     def transform(self, tokens: list[str]) -> torch.Tensor:
         """Return float32 features [N,dim] without changing fitted vocabularies."""
-        # TODO Task 2
-        raise NotImplementedError("Task 2: LinguisticFeatures.transform")
+        vocab_width = sum(len(vocab) for vocab in self.suffix_vocabs)
+        total_width = vocab_width + 5
+        res = []
+        for i, token in enumerate(tokens):
+            token_tens = [0] * total_width
+            idx = 0
+            for suffix_idx, vocab in enumerate(self.suffix_vocabs):
+                suffix_len = suffix_idx + 1
+
+                suffix = token[-suffix_len:].lower()
+                if suffix in vocab:
+                    token_tens[idx + vocab[suffix]] += 1
+                else:
+                    token_tens[idx] += 1  # <UNK>
+                idx += len(vocab)
+            flag_start_idx = vocab_width
+            # First char uppercase
+            if token[0].isupper():
+                token_tens[flag_start_idx] = 1
+            # Whole word uppercase
+            if token.isupper():
+                token_tens[flag_start_idx + 1] = 1
+            # Word contains digit, Word contains hyphen
+            for c in token:
+                if c.isdigit():
+                    token_tens[flag_start_idx + 2] = 1
+                if c == '-':
+                    token_tens[flag_start_idx + 3] = 1
+
+            # Word is first in sentence
+            if i == 0:
+                token_tens[flag_start_idx + 4] = 1
+
+            res.append(token_tens)
+        return torch.Tensor(res)
 
 
 class POSMLP(nn.Module):
