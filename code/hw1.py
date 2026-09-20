@@ -29,21 +29,36 @@ def get_data(path: str | Path) -> list[dict[str, Any]]:
     """
 
     def validate_record(record):
+        ALLOWED_TAGS = {'ADJ', 'ADP', 'ADV', 'AUX', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', "PART", 'PRON', 'PROPN',
+                        "PUNCT", 'SCONJ', 'SYM', 'VERB', 'X'}
         # Unique nonempty ID
+        if type(record) != dict:
+            raise ValueError("Bad Record")
         if not record.get('id', None):
             raise ValueError("No ID")
+        if type(record.get('id')) != str:
+            raise ValueError("Wrong ID type")
+        if type(record.get('tokens')) != list or (len(record.get('tokens')) > 0 and type(record.get('tokens')[0]) != str):
+            raise ValueError("Wrong token type")
         # Nonempty tokens list
         if not record.get('tokens') or len(record.get('tokens')) < 0:
             raise ValueError("Tokens are malformed")
         # Equal length tags
         if not record.get('tags') or len(record.get('tags')) != len(record.get('tokens')):
             raise ValueError("Tags are malformed")
+        # Known tags
+        for tag in record.get('tags'):
+            if tag not in ALLOWED_TAGS:
+                raise ValueError("Unknown tags")
         # Tokens don't have whitespace
         for token in record.get('tokens'):
             if not len(token):
                 raise ValueError('Token is empty')
-            if token != token.strip():
+            if len(token) != len(token.strip()):
                 raise ValueError('Token contains whitespace')
+            for t in token:
+                if t.isspace():
+                    raise ValueError('Token contains whitespace')
 
     lines = []
     with open(path) as f:
@@ -53,6 +68,8 @@ def get_data(path: str | Path) -> list[dict[str, Any]]:
                     line = json.loads(raw_line.strip())
                 except JSONDecodeError:
                     raise ValueError("JSON decode error")
+            else:
+                continue
             validate_record(line)
             # Only keep these 3 fields
             filtered_line = {"id": line.get('id'), "tokens": line.get('tokens'), "tags": line.get('tags')}
