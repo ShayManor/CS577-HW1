@@ -281,6 +281,8 @@ def tokenize_word_pieces(tokens: list[str], tokenizer) -> list[list[int]]:
     res = []
     for token in tokens:
         ids = tokenizer.encode(token, add_special_tokens=False).ids
+        if len(ids) == 0:
+            raise ValueError("Expected non zero token")
         res.append(ids)
     return res
 
@@ -354,8 +356,35 @@ def first_subword_indices(word_ids: list[int | None],
     n_words must be a nonnegative integer; each non-None ID must be an
     integer in [0, n_words). None may not split a word into separate blocks.
     """
-    # TODO Task 5
-    raise NotImplementedError("Task 5: first_subword_indices")
+    if n_words < 0:
+        raise ValueError("n words must be >= 0")
+    if len(word_ids) == 0:
+        raise ValueError("Empty word ids")
+    word_id, prev_word_id, idx = -1, None, 0
+    res = []
+    while idx < len(word_ids) and (word_id is None or word_id < n_words):
+        word_id = word_ids[idx]
+        if word_id is None or word_id == prev_word_id:
+            if word_id is None and prev_word_id is not None and idx + 1 < len(word_ids) and word_ids[idx + 1] is not None:
+                raise ValueError(f"None splits a word {word_id} {idx} {prev_word_id}")
+            idx += 1
+            continue
+        if prev_word_id is not None and word_id - prev_word_id != 1:
+            raise ValueError("Non contiguous")
+        if word_id >= n_words:
+            raise ValueError("ID out of range")
+        if word_id < 0:
+            raise ValueError("Invalid ID")
+        res.append(idx)
+        idx += 1
+        prev_word_id = word_id
+    if len(res) != n_words:
+        raise ValueError("Bad n_words")
+    return res
+
+if __name__ == '__main__':
+    print(first_subword_indices([None, 0, 0, 1, 2, 2, None, None], 3))
+
 
 
 def extract_bert_words(tokens: list[str], tokenizer, encoder) -> torch.Tensor:
