@@ -254,15 +254,13 @@ class WindowTagger(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)  # nn.Embedding
         self.count = 2*radius + 1
         self.input_dim = self.count * embedding_dim + feature_dim  # num words * word size (embedding) + flags
-        self.classifier = POSMLP(input_dim=self.input_dim, hidden_dim=hidden_dim, num_tags=num_tags)
+        self.classifier = POSMLP(input_dim=embedding_dim, hidden_dim=hidden_dim, num_tags=num_tags)
         self.mean = 0.0
         self.std = 0.02
-        nn.init.normal_(self.embedding.weight, mean=self.mean, std=self.std)
-        with torch.no_grad():
-            self.embedding.weight[self.embedding.padding_idx].zero_()
     def forward(self, windows: torch.Tensor,
                 features: torch.Tensor | None = None) -> torch.Tensor:
 
+        nn.init.normal_(self.embedding.weight, mean=self.mean, std=self.std)
         batch = windows.shape[0]
         x = self.embedding(windows)  # (batch size, count, embedding_dim)
         # Turn to (batch size, count * embedding dim)
@@ -272,8 +270,8 @@ class WindowTagger(nn.Module):
             concat.append(flattened)
         x = torch.stack(concat, dim=0)
         # Add features
-        if features is not None:
-            x = torch.cat([x, features], dim=1)  # Concatenate embeddings and features
+        if features:
+            torch.cat([x, features], dim=1)  # Concatenate embeddings and features
         return self.classifier(x)  # (batch size, num_tags)
 
 
