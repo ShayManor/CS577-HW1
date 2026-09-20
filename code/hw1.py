@@ -247,13 +247,34 @@ class WindowTagger(nn.Module):
         super().__init__()
         self.radius = radius
         self.feature_dim = feature_dim
-        # TODO Task 3
-        raise NotImplementedError("Task 3: WindowTagger.__init__")
-
+        self.embedding_dim = embedding_dim
+        self.hidden_dim = hidden_dim
+        self.num_tags = num_tags
+        self.dropout = dropout
+        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)  # nn.Embedding
+        self.count = 2*radius + 1
+        self.input_dim = self.count * embedding_dim + feature_dim  # num words * word size (embedding) + flags
+        self.classifier = POSMLP(input_dim=self.input_dim, hidden_dim=hidden_dim, num_tags=num_tags)
+        self.mean = 0.0
+        self.std = 0.02
+        nn.init.normal_(self.embedding.weight, mean=self.mean, std=self.std)
+        with torch.no_grad():
+            self.embedding.weight[self.embedding.padding_idx].zero_()
     def forward(self, windows: torch.Tensor,
                 features: torch.Tensor | None = None) -> torch.Tensor:
-        # TODO Task 3
-        raise NotImplementedError("Task 3: WindowTagger.forward")
+
+        batch = windows.shape[0]
+        x = self.embedding(windows)  # (batch size, count, embedding_dim)
+        # Turn to (batch size, count * embedding dim)
+        concat = []
+        for i in range(x.size(0)):
+            flattened = x[i].flatten()
+            concat.append(flattened)
+        x = torch.stack(concat, dim=0)
+        # Add features
+        if features is not None:
+            x = torch.cat([x, features], dim=1)  # Concatenate embeddings and features
+        return self.classifier(x)  # (batch size, num_tags)
 
 
 def tokenize_word_pieces(tokens: list[str], tokenizer) -> list[list[int]]:
