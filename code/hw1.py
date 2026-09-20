@@ -38,7 +38,8 @@ def get_data(path: str | Path) -> list[dict[str, Any]]:
             raise ValueError("No ID")
         if type(record.get('id')) != str:
             raise ValueError("Wrong ID type")
-        if type(record.get('tokens')) != list or (len(record.get('tokens')) > 0 and type(record.get('tokens')[0]) != str):
+        if type(record.get('tokens')) != list or (
+                len(record.get('tokens')) > 0 and type(record.get('tokens')[0]) != str):
             raise ValueError("Wrong token type")
         # Nonempty tokens list
         if not record.get('tokens') or len(record.get('tokens')) < 0:
@@ -101,7 +102,8 @@ def build_vocab(records: list[dict], min_freq: int = 2) -> dict[str, int]:
         if freq < min_freq:
             counts.pop(word)
     # Sort by frequency
-    sorted_words = sorted(counts, key=counts.get, reverse=True)
+    # sorted_words = sorted(counts, key=counts.get, reverse=True)
+    sorted_words = sorted(counts)
     # Build vocab dict starting at 2
     vocab = {str(word): id + 2 for id, word in enumerate(sorted_words)}
     # Add extra tokens
@@ -119,7 +121,7 @@ def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
 
 def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
     """Zero-pad sentence windows: [N] or [N,D] -> [N,2*radius+1] or [N,2*radius+1,D]."""
-    total_r = 2*radius + 1
+    total_r = 2 * radius + 1
     if values.ndim == 1:
         full_row = ([0] * radius)
         full_row.extend(values)
@@ -127,20 +129,19 @@ def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
         padded = []
         for i in range(len(values)):
             # Shift sliding window each time
-            row = full_row[i:2*radius + 1 + i]
+            row = full_row[i:2 * radius + 1 + i]
             padded.append(torch.tensor(row, dtype=values.dtype))
         return torch.stack(padded)
     else:
         # 2D vector
         count = values.shape[0]  # 7
-        height = 2*radius + 1  # 5
+        height = 2 * radius + 1  # 5
         width = values.shape[1]  # 3
-        full_tensor = torch.zeros(count + 2*radius, width, dtype=values.dtype)
+        full_tensor = torch.zeros(count + 2 * radius, width, dtype=values.dtype)
         full_tensor[radius:radius + count] = values
         res = torch.zeros(count, height, width, dtype=values.dtype)
         for idx in range(count):
-
-            res[idx] = full_tensor[idx:2*radius + 1 + idx]
+            res[idx] = full_tensor[idx:2 * radius + 1 + idx]
         return res
 
 
@@ -218,24 +219,22 @@ class LinguisticFeatures:
                 token_tens[flag_start_idx + 4] = 1
 
             res.append(token_tens)
-        return torch.Tensor(res)
+        return torch.Tensor(res).reshape(len(res), total_width)
 
 
 class POSMLP(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
         super().__init__()
-        self.linear = nn.Linear(input_dim, hidden_dim)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(dropout)
-        self.output = nn.Linear(hidden_dim, num_tags)
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, num_tags)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.linear(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.output(x)
-        return x
+        return self.network(x)
 
 
 class WindowTagger(nn.Module):
@@ -252,15 +251,17 @@ class WindowTagger(nn.Module):
         self.num_tags = num_tags
         self.dropout = dropout
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)  # nn.Embedding
-        self.count = 2*radius + 1
+        self.count = 2 * radius + 1
         self.input_dim = self.count * embedding_dim + feature_dim  # num words * word size (embedding) + flags
-        self.classifier = POSMLP(input_dim=embedding_dim, hidden_dim=hidden_dim, num_tags=num_tags)
+        self.classifier = POSMLP(input_dim=self.input_dim, hidden_dim=hidden_dim, num_tags=num_tags)
         self.mean = 0.0
         self.std = 0.02
+        with torch.no_grad():  # No accumulating gradients
+            self.embedding.weight[1:].normal_(self.mean, self.std)  # idx=0 is padding so skip
+
     def forward(self, windows: torch.Tensor,
                 features: torch.Tensor | None = None) -> torch.Tensor:
 
-        nn.init.normal_(self.embedding.weight, mean=self.mean, std=self.std)
         batch = windows.shape[0]
         x = self.embedding(windows)  # (batch size, count, embedding_dim)
         # Turn to (batch size, count * embedding dim)
@@ -270,8 +271,8 @@ class WindowTagger(nn.Module):
             concat.append(flattened)
         x = torch.stack(concat, dim=0)
         # Add features
-        if features:
-            torch.cat([x, features], dim=1)  # Concatenate embeddings and features
+        if features is not None:
+            x = torch.cat([x, features], dim=1)  # Concatenate embeddings and features
         return self.classifier(x)  # (batch size, num_tags)
 
 
