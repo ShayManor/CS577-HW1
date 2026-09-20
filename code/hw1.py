@@ -113,19 +113,35 @@ def encode_words(tokens: list[str], vocab: dict[str, int]) -> list[int]:
     """Map lowercase words to IDs, using UNK for unseen words."""
     token_ids = []
     for token in tokens:
-        token_ids.append(vocab.get(token, UNK))
+        token_ids.append(vocab.get(token.lower(), UNK))
     return token_ids
 
 
 def make_windows(values: torch.Tensor, radius: int = 2) -> torch.Tensor:
     """Zero-pad sentence windows: [N] or [N,D] -> [N,2*radius+1] or [N,2*radius+1,D]."""
-    padded = []
-    for i in range(radius + 1):
-        row = [0] * (radius - i)
-        row.extend(values)
-        row.extend([0] * i)
-        padded.append(row)
-    return torch.Tensor(padded)
+    total_r = 2*radius + 1
+    if values.ndim == 1:
+        full_row = ([0] * radius)
+        full_row.extend(values)
+        full_row.extend([0] * radius)
+        padded = []
+        for i in range(len(values)):
+            # Shift sliding window each time
+            row = full_row[i:2*radius + 1 + i]
+            padded.append(torch.tensor(row, dtype=values.dtype))
+        return torch.stack(padded)
+    else:
+        # 2D vector
+        count = values.shape[0]  # 7
+        height = 2*radius + 1  # 5
+        width = values.shape[1]  # 3
+        full_tensor = torch.zeros(count + 2*radius, width, dtype=values.dtype)
+        full_tensor[radius:radius + count] = values
+        res = torch.zeros(count, height, width, dtype=values.dtype)
+        for idx in range(count):
+
+            res[idx] = full_tensor[idx:2*radius + 1 + idx]
+        return res
 
 
 class LinguisticFeatures:
