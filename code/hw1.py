@@ -280,7 +280,7 @@ def tokenize_word_pieces(tokens: list[str], tokenizer) -> list[list[int]]:
     """Return subword IDs for each word, preserving case and adding no special tokens."""
     res = []
     for token in tokens:
-        ids = tokenizer.encode(token, add_special_tokens=False)
+        ids = tokenizer.encode(token, add_special_tokens=False).ids
         res.append(ids)
     return res
 
@@ -292,7 +292,7 @@ def mean_pool_subwords(embeddings: torch.Tensor,
     # N is words, S is the length fo the longest word, D is dimension
     N, S, D = embeddings.shape
     ret = torch.zeros(N, D, dtype=embeddings.dtype)
-    for idx, word_embeds in enumerate(embeddings): # N times
+    for idx, word_embeds in enumerate(embeddings):  # N times
         word_mask = mask[idx]
         sums = torch.zeros(D, dtype=embeddings.dtype)
         count = 0
@@ -303,7 +303,7 @@ def mean_pool_subwords(embeddings: torch.Tensor,
             #     continue
             for i in range(D):
                 sums[i] += embed[i]
-            count +=1
+            count += 1
         for i in range(D):
             if count > 0:
                 sums[i] = sums[i] / count
@@ -320,12 +320,26 @@ class QwenTagger(nn.Module):
                  radius: int = 2, hidden_dim: int = 128,
                  num_tags: int = 17, dropout: float = 0.1):
         super().__init__()
-        # TODO Task 4
-        raise NotImplementedError("Task 4: QwenTagger.__init__")
+        self.source_dim = source_dim
+        self.projection_dim = projection_dim
+        self.radius = radius
+        self.hidden_dim = hidden_dim
+        self.num_tags = num_tags
+        self.dropout = dropout
+        self.input_dim = 2 * radius + 1
+        if self.projection_dim:
+            self.classifier = POSMLP(self.input_dim * projection_dim, hidden_dim=hidden_dim, num_tags=num_tags, dropout=dropout)
+            self.projection = nn.Linear(source_dim, projection_dim, bias=False)
+        else:
+            self.classifier = POSMLP(self.input_dim * source_dim, hidden_dim=hidden_dim, num_tags=num_tags, dropout=dropout)
+            self.projection = nn.Identity(source_dim)  # projection layer does nothing
 
     def forward(self, windows: torch.Tensor) -> torch.Tensor:
-        # TODO Task 4
-        raise NotImplementedError("Task 4: QwenTagger.forward")
+        # Windows is [B, 5, d]
+        x = self.projection(windows)
+        x = x.flatten(1)  # Flatten proj into [B, 5p]
+        x = self.classifier(x)
+        return x
 
 
 def first_subword_indices(word_ids: list[int | None],
