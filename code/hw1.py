@@ -278,15 +278,39 @@ class WindowTagger(nn.Module):
 
 def tokenize_word_pieces(tokens: list[str], tokenizer) -> list[list[int]]:
     """Return subword IDs for each word, preserving case and adding no special tokens."""
-    # TODO Task 4
-    raise NotImplementedError("Task 4: tokenize_word_pieces")
+    res = []
+    for token in tokens:
+        ids = tokenizer.encode(token, add_special_tokens=False)
+        res.append(ids)
+    return res
 
 
 def mean_pool_subwords(embeddings: torch.Tensor,
                        mask: torch.Tensor) -> torch.Tensor:
-    """Average embeddings [N,S,D] using mask [N,S]; return zero for an empty mask row."""
-    # TODO Task 4
-    raise NotImplementedError("Task 4: mean_pool_subwords")
+    """Average embeddings [N,S,D] using mask [N,S]; return zero for an empty mask row. Return [N, D]"""
+    # Take average of non-masked values [[[D], [D]], [[D], [D] X S] X N]
+    # N is words, S is the length fo the longest word, D is dimension
+    N, S, D = embeddings.shape
+    ret = torch.zeros(N, D, dtype=embeddings.dtype)
+    for idx, word_embeds in enumerate(embeddings): # N times
+        word_mask = mask[idx]
+        sums = torch.zeros(D, dtype=embeddings.dtype)
+        count = 0
+        for embed_idx, embed in enumerate(word_embeds):  # S times
+            if word_mask[embed_idx] == 0:
+                continue  # mask
+            # if sum(word_mask) == 0:  # masked
+            #     continue
+            for i in range(D):
+                sums[i] += embed[i]
+            count +=1
+        for i in range(D):
+            if count > 0:
+                sums[i] = sums[i] / count
+            else:
+                sums[i] = 0
+        ret[idx] = sums
+    return ret
 
 
 class QwenTagger(nn.Module):
