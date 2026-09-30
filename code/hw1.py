@@ -449,8 +449,31 @@ def train_epoch(model: nn.Module, batches, optimizer,
     Accuracy is in [0,1]. Raise ValueError if no valid labels in the epoch.
     Do not create/reset the optimizer; it persists across epochs.
     """
-    # TODO Task 6
-    raise NotImplementedError("Task 6: train_epoch")
+    total_loss, correct_count, valid_count = 0.0, 0, 0
+    loss_func = nn.CrossEntropyLoss(ignore_index=-100)
+    model.train()
+
+    for batch in batches:
+        optimizer.zero_grad()
+        inputs, labels = batch
+        labels = labels.to(device)
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        valid = (labels != -100).sum().item()
+        if valid == 0:
+            continue
+        logits = model(**inputs)
+        loss = loss_func(logits, labels)
+
+        pred = logits.argmax(dim=1)
+        correct_count += (pred[labels != -100] == labels[labels != -100]).sum().item()
+        valid_count += valid
+        total_loss += loss.item() * valid
+
+        loss.backward()
+        optimizer.step()
+    if valid_count == 0:
+        raise ValueError()
+    return {'loss': total_loss / valid_count, 'accuracy': correct_count / valid_count}
 
 
 def evaluate(model: nn.Module, batches,
@@ -463,5 +486,28 @@ def evaluate(model: nn.Module, batches,
     metrics. Raise ValueError if there are no valid labels. Same batch format
     as train_epoch. Use argmax logits, with PyTorch's tie handling.
     """
-    # TODO Task 6
-    raise NotImplementedError("Task 6: evaluate")
+    total_loss, correct_count, valid_count = 0.0, 0, 0
+    preds = []
+    loss_func = nn.CrossEntropyLoss(ignore_index=-100)
+    model.eval()
+
+    for batch in batches:
+        inputs, labels = batch
+        labels = labels.to(device)
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        valid = (labels != -100).sum().item()
+        if valid == 0:
+            continue
+        with torch.no_grad():
+            logits = model(**inputs)
+            loss = loss_func(logits, labels)
+
+        pred = logits.argmax(dim=1)
+        preds.extend(pred)
+        correct_count += (pred[labels != -100] == labels[labels != -100]).sum().item()
+        valid_count += valid
+        total_loss += loss.item() * valid
+
+    if valid_count == 0:
+        raise ValueError()
+    return {'loss': total_loss / valid_count, 'accuracy': correct_count / valid_count, 'predictions': preds}
