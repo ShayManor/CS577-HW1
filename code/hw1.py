@@ -330,10 +330,12 @@ class QwenTagger(nn.Module):
         self.dropout = dropout
         self.input_dim = 2 * radius + 1
         if self.projection_dim:
-            self.classifier = POSMLP(self.input_dim * projection_dim, hidden_dim=hidden_dim, num_tags=num_tags, dropout=dropout)
+            self.classifier = POSMLP(self.input_dim * projection_dim, hidden_dim=hidden_dim, num_tags=num_tags,
+                                     dropout=dropout)
             self.projection = nn.Linear(source_dim, projection_dim, bias=False)
         else:
-            self.classifier = POSMLP(self.input_dim * source_dim, hidden_dim=hidden_dim, num_tags=num_tags, dropout=dropout)
+            self.classifier = POSMLP(self.input_dim * source_dim, hidden_dim=hidden_dim, num_tags=num_tags,
+                                     dropout=dropout)
             self.projection = nn.Identity(source_dim)  # projection layer does nothing
 
     def forward(self, windows: torch.Tensor) -> torch.Tensor:
@@ -365,7 +367,8 @@ def first_subword_indices(word_ids: list[int | None],
     while idx < len(word_ids) and (word_id is None or word_id < n_words):
         word_id = word_ids[idx]
         if word_id is None or word_id == prev_word_id:
-            if word_id is None and prev_word_id is not None and idx + 1 < len(word_ids) and word_ids[idx + 1] is not None:
+            if word_id is None and prev_word_id is not None and idx + 1 < len(word_ids) and word_ids[
+                idx + 1] is not None:
                 raise ValueError(f"None splits a word {word_id} {idx} {prev_word_id}")
             idx += 1
             continue
@@ -381,10 +384,6 @@ def first_subword_indices(word_ids: list[int | None],
     if len(res) != n_words:
         raise ValueError("Bad n_words")
     return res
-
-if __name__ == '__main__':
-    print(first_subword_indices([None, 0, 0, 1, 2, 2, None, None], 3))
-
 
 
 def extract_bert_words(tokens: list[str], tokenizer, encoder) -> torch.Tensor:
@@ -404,8 +403,26 @@ def extract_bert_words(tokens: list[str], tokenizer, encoder) -> torch.Tensor:
     the encoded input length, a missing attention mask, or a selected word
     position masked as padding. Validate word IDs with first_subword_indices.
     """
-    # TODO Task 5
-    raise NotImplementedError("Task 5: extract_bert_words")
+
+    toks = tokenizer(tokens, is_split_into_words=True, add_special_tokens=True, truncation=False, return_tensors='pt')
+
+    if len(toks.word_ids()) > encoder.config.max_position_embeddings:
+        raise ValueError("Length too long")
+    if toks["input_ids"].shape[1] != len(toks.word_ids()):
+        raise ValueError()
+    if not "attention_mask" in toks:
+        raise ValueError()
+    positions = first_subword_indices(toks.word_ids(), len(tokens))
+    mask = toks.get("attention_mask")
+    for pos in positions:
+        if mask[0, pos] != 1:
+            raise ValueError()
+    encoder.eval()
+    for param in encoder.parameters():
+        param.requires_grad = False
+    with torch.no_grad():
+        out = encoder(**toks)
+    return out.last_hidden_state[0, positions, :].detach().cpu().float()
 
 
 class BertTagger(nn.Module):
