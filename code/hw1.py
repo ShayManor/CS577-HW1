@@ -503,7 +503,7 @@ def evaluate(model: nn.Module, batches,
             loss = loss_func(logits, labels)
 
         pred = logits.argmax(dim=1)
-        preds.extend(pred)
+        preds.extend(pred.tolist())
         correct_count += (pred[labels != -100] == labels[labels != -100]).sum().item()
         valid_count += valid
         total_loss += loss.item() * valid
